@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'constants/app_colors.dart'; // 定義した色をインポート
+import 'package:frontend/screens/home/home_screen.dart';
+import 'constants/app_colors.dart';
+// 作成したHomeScreenをインポート
 
 class MachiawaseApp extends StatelessWidget {
   const MachiawaseApp({super.key});
@@ -9,22 +11,33 @@ class MachiawaseApp extends StatelessWidget {
     return MaterialApp(
       title: 'Machiawase App',
       debugShowCheckedModeBanner: false,
+      
+      // アプリ全体のテーマ設定
       theme: ThemeData(
         useMaterial3: true,
+        
+        // カラーパレットの適用
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
-          primary: AppColors.primary,
-          secondary: AppColors.secondary,
-          surface: AppColors.background,
-          background: AppColors.background,
+          primary: AppColors.primary,       // Glacier Blue
+          secondary: AppColors.secondary,   // Ice
+          surface: AppColors.background,    // Overcast
+          background: AppColors.background, // Overcast
         ),
+        
+        // 背景色の設定
         scaffoldBackgroundColor: AppColors.background,
+        
+        // AppBar（ヘッダー）のテーマ
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.background,
           foregroundColor: AppColors.textBody,
           elevation: 0,
           centerTitle: true,
+          iconTheme: IconThemeData(color: AppColors.textBody),
         ),
+        
+        // 下部ナビゲーションバーのテーマ
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           indicatorColor: AppColors.ice.withOpacity(0.5),
@@ -38,11 +51,19 @@ class MachiawaseApp extends StatelessWidget {
             return const IconThemeData(color: AppColors.warmGray);
           }),
         ),
+        
+        // フローティングアクションボタンのテーマ
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+        
+        // ボタンのテーマ
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            elevation: 2,
+            elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -64,33 +85,34 @@ class RootScaffold extends StatefulWidget {
 class _RootScaffoldState extends State<RootScaffold> {
   int _currentIndex = 0;
 
-  // まだファイルを作成していないため、標準的なWidgetで仮置きしています。
-  // 後ほど lib/screens/ 以下のファイルを作成したら、それらをimportして置き換えてください。
-  final List<Widget> _screens = [
-    // 1. Home画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Home Screen (Page 3)')),
-    ),
-    // 2. Map画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Map Screen (Page 4)')),
-    ),
-    // 3. Message画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Message Screen (Page 8)')),
-    ),
-    // 4. Setting画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Setting Screen (Page 10)')),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // 現在のインデックスに応じた画面を表示
-      body: _screens[_currentIndex],
+    // 画面のリスト
+    final List<Widget> screens = [
+      // 1. Home: 作成済みの本物のファイルを使用
+      const HomeScreen(),
       
+      // 2. Map: 仮置き
+      const Scaffold(
+        body: Center(child: Text('Map Screen (Page 4)')),
+      ),
+      
+      // 3. Message: 仮置き
+      const Scaffold(
+        body: Center(child: Text('Message Screen (Page 8)')),
+      ),
+      
+      // 4. Setting: 仮置き
+      const Scaffold(
+        body: Center(child: Text('Setting Screen (Page 10)')),
+      ),
+    ];
+
+    return Scaffold(
+      // 現在選択されているインデックスの画面を表示
+      body: screens[_currentIndex],
+      
+      // 下部のナビゲーションバー
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
