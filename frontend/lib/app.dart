@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/home/home_screen.dart';
+import 'package:frontend/screens/home/home_screen.dart';
 import 'constants/app_colors.dart';
 // 作成したHomeScreenをインポート
 

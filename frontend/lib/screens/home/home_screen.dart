@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import 'user_list_screen.dart'; // 作成した一覧画面をインポート
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,11 +14,9 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
-      // 要望のあった検索ボタン（虫眼鏡アイコン）
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           print("検索ボタンが押されました");
-          // 将来的に検索画面へ遷移する処理を記述
         },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.search, color: Colors.white),
@@ -27,11 +26,11 @@ class HomeScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
             
-            // --- 1. プロフィールセクション ---
+            // --- プロフィールセクション ---
             Center(
               child: Column(
                 children: [
-                  // プロフィールアイコン（二重円デザイン）
+                  // アイコン画像
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
@@ -42,7 +41,7 @@ class HomeScreen extends StatelessWidget {
                       width: 88,
                       height: 88,
                       decoration: BoxDecoration(
-                        color: AppColors.secondary, // Iceカラー
+                        color: AppColors.secondary,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
@@ -68,18 +67,55 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   
-                  // フォロー・フォロワー数
+                  // --- フォロー・フォロワー数 (タップ機能付き) ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildStatItem('10', 'Followers'),
+                      // フォロワー
+                      _buildStatItem(
+                        context,
+                        count: '10', 
+                        label: 'Followers',
+                        onTap: () {
+                          // フォロワー一覧へ遷移
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const UserListScreen(
+                                title: 'フォロワー',
+                                isFollowingList: false, // フォロワー一覧モード
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      // 区切り線
                       Container(
                         height: 24,
                         width: 1,
                         color: AppColors.warmGray,
                         margin: const EdgeInsets.symmetric(horizontal: 30),
                       ),
-                      _buildStatItem('12', 'Following'),
+                      
+                      // フォロー中
+                      _buildStatItem(
+                        context,
+                        count: '12', 
+                        label: 'Following',
+                        onTap: () {
+                          // フォロー中一覧へ遷移
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const UserListScreen(
+                                title: 'フォロー中',
+                                isFollowingList: true, // フォロー中リストモード
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ],
@@ -88,7 +124,7 @@ class HomeScreen extends StatelessWidget {
             
             const SizedBox(height: 40),
             
-            // --- 2. 履歴リストセクション ---
+            // --- 履歴リストセクション ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -108,11 +144,11 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             
-            // 履歴カードのリスト
+            // 履歴リスト
             ListView.builder(
-              shrinkWrap: true, // ScrollView内でListViewを使うための設定
-              physics: const NeverScrollableScrollPhysics(), // 親のスクロールのみ有効にする
-              itemCount: 3, // 仮のデータ数
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 3,
               itemBuilder: (context, index) {
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -146,15 +182,12 @@ class HomeScreen extends StatelessWidget {
                     trailing: IconButton(
                       icon: const Icon(Icons.refresh, color: AppColors.primary),
                       tooltip: 'もう一度作成',
-                      onPressed: () {
-                        // 再作成のロジック
-                      },
+                      onPressed: () {},
                     ),
                   ),
                 );
               },
             ),
-            // FABとコンテンツが被らないように下の余白を追加
             const SizedBox(height: 80),
           ],
         ),
@@ -162,28 +195,35 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 数値表示用のヘルパーメソッド
-  Widget _buildStatItem(String count, String label) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textBody,
-          ),
+  // タップ可能な数値アイテムを作成するヘルパーメソッド
+  Widget _buildStatItem(BuildContext context, {required String count, required String label, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8), // タップ時の波紋を丸くする
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), // タップ領域を確保
+        child: Column(
+          children: [
+            Text(
+              count,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textBody,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSub,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSub,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
