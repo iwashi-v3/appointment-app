@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
-import 'user_list_screen.dart'; // 作成した一覧画面をインポート
+import 'user_list_screen.dart';   // フォロー・フォロワー一覧画面
+import 'user_search_screen.dart'; // ユーザー検索画面
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -14,13 +15,21 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
+      
+      // --- 検索ボタン (ユーザー検索画面へ遷移) ---
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          print("検索ボタンが押されました");
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const UserSearchScreen(),
+            ),
+          );
         },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.search, color: Colors.white),
       ),
+      
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -30,7 +39,7 @@ class HomeScreen extends StatelessWidget {
             Center(
               child: Column(
                 children: [
-                  // アイコン画像
+                  // プロフィールアイコン（二重円デザイン）
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
@@ -41,7 +50,7 @@ class HomeScreen extends StatelessWidget {
                       width: 88,
                       height: 88,
                       decoration: BoxDecoration(
-                        color: AppColors.secondary,
+                        color: AppColors.secondary, // Iceカラー
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
@@ -71,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // フォロワー
+                      // フォロワー数
                       _buildStatItem(
                         context,
                         count: '10', 
@@ -83,7 +92,7 @@ class HomeScreen extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) => const UserListScreen(
                                 title: 'フォロワー',
-                                isFollowingList: false, // フォロワー一覧モード
+                                isFollowingList: false,
                               ),
                             ),
                           );
@@ -98,7 +107,7 @@ class HomeScreen extends StatelessWidget {
                         margin: const EdgeInsets.symmetric(horizontal: 30),
                       ),
                       
-                      // フォロー中
+                      // フォロー中数
                       _buildStatItem(
                         context,
                         count: '12', 
@@ -110,7 +119,7 @@ class HomeScreen extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) => const UserListScreen(
                                 title: 'フォロー中',
-                                isFollowingList: true, // フォロー中リストモード
+                                isFollowingList: true,
                               ),
                             ),
                           );
@@ -144,9 +153,9 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             
-            // 履歴リスト
+            // 履歴カードリスト
             ListView.builder(
-              shrinkWrap: true,
+              shrinkWrap: true, // 親のスクロールを使うために必要
               physics: const NeverScrollableScrollPhysics(),
               itemCount: 3,
               itemBuilder: (context, index) {
@@ -182,12 +191,16 @@ class HomeScreen extends StatelessWidget {
                     trailing: IconButton(
                       icon: const Icon(Icons.refresh, color: AppColors.primary),
                       tooltip: 'もう一度作成',
-                      onPressed: () {},
+                      onPressed: () {
+                        // 再作成ロジック（後日実装）
+                      },
                     ),
                   ),
                 );
               },
             ),
+            
+            // FABがコンテンツに被らないように下の余白を確保
             const SizedBox(height: 80),
           ],
         ),
@@ -195,13 +208,13 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // タップ可能な数値アイテムを作成するヘルパーメソッド
+  // タップ可能な数値アイテムを作るヘルパーメソッド
   Widget _buildStatItem(BuildContext context, {required String count, required String label, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8), // タップ時の波紋を丸くする
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), // タップ領域を確保
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Column(
           children: [
             Text(
