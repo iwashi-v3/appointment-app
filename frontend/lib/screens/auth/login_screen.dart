@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // ログイン成功 -> ホーム画面（RootScaffold）へ遷移
     // 戻れないように pushReplacement を使用
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MachiawaseApp()),
+      MaterialPageRoute(builder: (context) => const MachiawaseApp(isGuest: false)),
     );
   }
 
