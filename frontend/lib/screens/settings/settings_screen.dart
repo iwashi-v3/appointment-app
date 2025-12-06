@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import 'edit_profile_screen.dart';        // プロフィール編集画面
+import 'notification_settings_screen.dart'; // 通知設定画面
+import 'blocked_users_screen.dart';       // ブロックユーザー管理画面
+import 'text_content_screen.dart';        // テキスト表示画面（規約等）
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -29,7 +33,10 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.person_outline,
             title: 'プロフィール編集',
             onTap: () {
-              // プロフィール編集画面へ遷移
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+              );
             },
           ),
           _buildSettingTile(
@@ -37,7 +44,10 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.notifications_outlined,
             title: '通知設定',
             onTap: () {
-              // 通知設定画面へ遷移
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationSettingsScreen()),
+              );
             },
           ),
           _buildSettingTile(
@@ -45,7 +55,10 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.block,
             title: 'ブロックユーザー管理',
             onTap: () {
-              // ブロックリスト画面へ遷移
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BlockedUsersScreen()),
+              );
             },
           ),
 
@@ -57,19 +70,49 @@ class SettingsScreen extends StatelessWidget {
             context,
             icon: Icons.help_outline,
             title: 'ヘルプ・お問い合わせ',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TextContentScreen(
+                    title: 'ヘルプ・お問い合わせ',
+                    content: 'ここにFAQやお問い合わせフォームへのリンクなどを記載します。\n\n・使い方がわからない場合\n・不具合を見つけた場合\n...',
+                  ),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context,
             icon: Icons.description_outlined,
             title: '利用規約',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TextContentScreen(
+                    title: '利用規約',
+                    content: '第1条（目的）\nこの利用規約は、本アプリの利用条件を定めるものです。\n\n第2条（定義）\n...',
+                  ),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context,
             icon: Icons.privacy_tip_outlined,
             title: 'プライバシーポリシー',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TextContentScreen(
+                    title: 'プライバシーポリシー',
+                    content: '1. 個人情報の収集について\n当アプリでは、サービスの提供に必要な範囲で...\n\n2. 情報の利用目的\n取得した情報は以下の目的で利用します...',
+                  ),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context,
@@ -79,7 +122,7 @@ class SettingsScreen extends StatelessWidget {
               '1.0.0',
               style: TextStyle(color: AppColors.textSub, fontSize: 12),
             ),
-            onTap: () {}, // バージョンタップは何もしなくてOK
+            onTap: () {},
           ),
 
           const SizedBox(height: 24),
@@ -90,7 +133,7 @@ class SettingsScreen extends StatelessWidget {
             context,
             icon: Icons.logout,
             title: 'ログアウト',
-            textColor: AppColors.primary, // 目立たせるならメインカラーか
+            textColor: AppColors.primary,
             iconColor: AppColors.primary,
             onTap: () => _showLogoutDialog(context),
           ),
@@ -109,7 +152,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // セクションのタイトル
+  // セクションのタイトルウィジェット
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -124,7 +167,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // 設定項目のタイル
+  // 設定項目のタイルウィジェット
   Widget _buildSettingTile(
     BuildContext context, {
     required IconData icon,
@@ -171,7 +214,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // ログアウト処理
+              // ログアウト処理をここに記述
               Navigator.pop(context);
             },
             child: const Text('ログアウト', style: TextStyle(color: AppColors.primary)),
@@ -195,7 +238,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // 削除処理
+              // 削除処理をここに記述
               Navigator.pop(context);
             },
             child: const Text('削除する', style: TextStyle(color: Colors.red)),
