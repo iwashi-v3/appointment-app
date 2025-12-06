@@ -3,22 +3,21 @@ import 'constants/app_colors.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/map/map_screen.dart';
 import 'screens/message/message_list_screen.dart';
-import 'screens/settings/settings_screen.dart'; // 設定画面をインポート
+import 'screens/settings/settings_screen.dart';
 
 class MachiawaseApp extends StatelessWidget {
-  const MachiawaseApp({super.key});
+  // ゲストモードかどうかを親から受け取る
+  final bool isGuest;
+
+  const MachiawaseApp({super.key, required this.isGuest});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Machiawase App',
       debugShowCheckedModeBanner: false,
-      
-      // アプリ全体のテーマ設定
       theme: ThemeData(
         useMaterial3: true,
-        
-        // カラーパレット設定
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
           primary: AppColors.primary,
@@ -26,11 +25,7 @@ class MachiawaseApp extends StatelessWidget {
           surface: AppColors.background,
           background: AppColors.background,
         ),
-        
-        // 背景色
         scaffoldBackgroundColor: AppColors.background,
-        
-        // AppBar（ヘッダー）のテーマ
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.background,
           foregroundColor: AppColors.textBody,
@@ -38,8 +33,6 @@ class MachiawaseApp extends StatelessWidget {
           centerTitle: true,
           iconTheme: IconThemeData(color: AppColors.textBody),
         ),
-        
-        // 下部ナビゲーションバーのテーマ
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           indicatorColor: AppColors.ice.withOpacity(0.5),
@@ -53,14 +46,10 @@ class MachiawaseApp extends StatelessWidget {
             return const IconThemeData(color: AppColors.warmGray);
           }),
         ),
-        
-        // フローティングアクションボタンのテーマ
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
         ),
-        
-        // ボタンのテーマ
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
@@ -72,36 +61,36 @@ class MachiawaseApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const RootScaffold(),
+      // ゲスト状態を RootScaffold に渡す
+      home: RootScaffold(isGuest: isGuest),
     );
   }
 }
 
 class RootScaffold extends StatefulWidget {
-  const RootScaffold({super.key});
+  final bool isGuest;
+  const RootScaffold({super.key, required this.isGuest});
 
   @override
   State<RootScaffold> createState() => _RootScaffoldState();
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
-  int _currentIndex = 0;
+  // ゲストユーザーはマップ機能がメインのため、初期表示をMap(インデックス1)にする
+  int _currentIndex = 1;
 
   @override
   Widget build(BuildContext context) {
-    // 画面のリスト
+    // 各画面に isGuest フラグを渡す
     final List<Widget> screens = [
-      const HomeScreen(),        // 1. Home
-      const MapScreen(),         // 2. Map
-      const MessageListScreen(), // 3. Message
-      const SettingsScreen(),    // 4. Setting
+      HomeScreen(isGuest: widget.isGuest),           // 1. Home (制限あり)
+      MapScreen(isGuest: widget.isGuest),            // 2. Map (制限なし、作成ボタンのみ制限)
+      MessageListScreen(isGuest: widget.isGuest),    // 3. Message (制限あり)
+      const SettingsScreen(),                        // 4. Setting (今回は制限なし)
     ];
 
     return Scaffold(
-      // 現在のインデックスに応じた画面を表示
       body: screens[_currentIndex],
-      
-      // 下部のナビゲーションバー
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {

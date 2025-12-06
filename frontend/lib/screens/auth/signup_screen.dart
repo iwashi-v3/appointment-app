@@ -39,7 +39,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     // 登録成功 -> 全スタックをクリアしてホーム画面へ
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const MachiawaseApp()),
+      MaterialPageRoute(builder: (context) => const MachiawaseApp(isGuest: false)),
       (route) => false,
     );
   }
