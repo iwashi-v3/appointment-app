@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'constants/app_colors.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/map/map_screen.dart';
-import 'screens/message/message_list_screen.dart'; // メッセージ一覧画面をインポート
+import 'screens/message/message_list_screen.dart';
+import 'screens/settings/settings_screen.dart'; // 設定画面をインポート
 
 class MachiawaseApp extends StatelessWidget {
   const MachiawaseApp({super.key});
@@ -93,7 +94,7 @@ class _RootScaffoldState extends State<RootScaffold> {
       const HomeScreen(),        // 1. Home
       const MapScreen(),         // 2. Map
       const MessageListScreen(), // 3. Message
-      const Scaffold(body: Center(child: Text('Setting Screen (Page 10)'))), // 4. Setting (仮置き)
+      const SettingsScreen(),    // 4. Setting
     ];
 
     return Scaffold(
