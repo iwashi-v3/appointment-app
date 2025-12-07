@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'constants/app_colors.dart';
 import 'screens/home/home_screen.dart';
-import 'screens/map/map_screen.dart';
+import 'screens/list/list_screen.dart'; // MapScreenの代わりにListScreenをインポート
 import 'screens/message/message_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
 class MachiawaseApp extends StatelessWidget {
-  // ゲストモードかどうかを親から受け取る
   final bool isGuest;
 
   const MachiawaseApp({super.key, required this.isGuest});
@@ -16,6 +15,8 @@ class MachiawaseApp extends StatelessWidget {
     return MaterialApp(
       title: 'Machiawase App',
       debugShowCheckedModeBanner: false,
+      
+      // アプリ全体のテーマ設定
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -61,7 +62,8 @@ class MachiawaseApp extends StatelessWidget {
           ),
         ),
       ),
-      // ゲスト状態を RootScaffold に渡す
+      
+      // ゲスト状態をルート画面に渡す
       home: RootScaffold(isGuest: isGuest),
     );
   }
@@ -76,21 +78,23 @@ class RootScaffold extends StatefulWidget {
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
-  // ゲストユーザーはマップ機能がメインのため、初期表示をMap(インデックス1)にする
+  // 初期表示をList(インデックス1)にする
   int _currentIndex = 1;
 
   @override
   Widget build(BuildContext context) {
-    // 各画面に isGuest フラグを渡す
+    // 画面のリスト
     final List<Widget> screens = [
-      HomeScreen(isGuest: widget.isGuest),           // 1. Home (制限あり)
-      MapScreen(isGuest: widget.isGuest),            // 2. Map (制限なし、作成ボタンのみ制限)
-      MessageListScreen(isGuest: widget.isGuest),    // 3. Message (制限あり)
-      const SettingsScreen(),                        // 4. Setting (今回は制限なし)
+      HomeScreen(isGuest: widget.isGuest),           // 1. Home
+      ListScreen(isGuest: widget.isGuest),           // 2. List (Mapから変更)
+      MessageListScreen(isGuest: widget.isGuest),    // 3. Message
+      const SettingsScreen(),                        // 4. Setting
     ];
 
     return Scaffold(
       body: screens[_currentIndex],
+      
+      // 下部のナビゲーションバー
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
@@ -104,10 +108,11 @@ class _RootScaffoldState extends State<RootScaffold> {
             selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
+          // 2番目のタブをMapからListに変更
           NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Map',
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'List',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),
