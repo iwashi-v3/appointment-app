@@ -1,28 +1,95 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
-import '../../widgets/auth_guard.dart'; // AuthGuardをインポート
+import '../../widgets/auth_guard.dart';
 import 'user_list_screen.dart';
 import 'user_search_screen.dart';
+import 'follow_requests_screen.dart';
+import '../list/create_meeting_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  final bool isGuest; // ゲストフラグを受け取る
+  final bool isGuest;
 
   const HomeScreen({
     super.key,
     required this.isGuest,
   });
 
+  // ダミーの過去履歴データ
+  // リスト表示には場所を出さないが、再作成時に引き継ぐためにデータには持たせておく
+  final List<Map<String, dynamic>> _historyMeetings = const [
+    {
+      'title': 'ハッカソン打ち合わせ',
+      'location': '大学カフェテリア', // 再作成用
+      'datetime': '2023/12/05(火) 12:00',
+      'members': ['佐藤さん', '鈴木さん'],
+    },
+    {
+      'title': '駅前ランチ',
+      'location': '駅前パスタ屋',
+      'datetime': '2023/12/01(金) 18:30',
+      'members': ['田中さん'],
+    },
+    {
+      'title': 'サークル部室',
+      'location': '部室棟 301',
+      'datetime': '2023/11/20(月) 16:00',
+      'members': ['山田さん', '高橋さん'],
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Home'),
         automaticallyImplyLeading: false,
         backgroundColor: AppColors.background,
         elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.textBody),
+        titleTextStyle: const TextStyle(
+          color: AppColors.textBody,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        actions: [
+          // フォローリクエスト画面への遷移ボタン
+          // 要望通り「人のマーク」に変更
+          if (!isGuest)
+            IconButton(
+              icon: Stack(
+                children: [
+                  const Icon(Icons.person_outline, size: 28), // 人のマーク
+                  // 通知バッジ
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.fromBorderSide(
+                            BorderSide(color: AppColors.background, width: 1.5)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FollowRequestsScreen()),
+                );
+              },
+            ),
+          const SizedBox(width: 16),
+        ],
       ),
       
-      // ゲスト時は検索ボタン(FAB)を表示しない
+      // ユーザー検索ボタン (FAB)
       floatingActionButton: isGuest ? null : FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -36,7 +103,6 @@ class HomeScreen extends StatelessWidget {
         child: const Icon(Icons.search, color: Colors.white),
       ),
       
-      // ボディ全体を AuthGuard でラップする
       body: AuthGuard(
         isGuest: isGuest,
         child: SingleChildScrollView(
@@ -142,9 +208,9 @@ class HomeScreen extends StatelessWidget {
                     Text(
                       '過去の待ち合わせ',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: AppColors.textBody,
                       ),
                     ),
                   ],
@@ -152,43 +218,14 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               
-              ListView.builder(
+              ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 3,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                itemCount: _historyMeetings.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 16),
                 itemBuilder: (context, index) {
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    elevation: 0,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: AppColors.secondary, width: 0.5),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.location_on_outlined, color: AppColors.glacierBlue),
-                      ),
-                      title: Text(
-                        '大学カフェテリア ${index + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textBody),
-                      ),
-                      subtitle: const Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Text('2023.12.05 12:00'),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.refresh, color: AppColors.primary),
-                        onPressed: () {},
-                      ),
-                    ),
-                  );
+                  return _buildHistoryCard(context, _historyMeetings[index]);
                 },
               ),
               const SizedBox(height: 80),
@@ -199,6 +236,128 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // 履歴カードのビルド (ListScreenのデザインを踏襲、場所は非表示)
+  Widget _buildHistoryCard(BuildContext context, Map<String, dynamic> meeting) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            // 再作成のために作成画面へ遷移
+            // ここで meeting データ（場所含む）をそのまま渡す
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CreateMeetingScreen(
+                  isGuest: isGuest,
+                  initialData: meeting, // 履歴データを渡す
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // タイトル
+                Text(
+                  meeting['title'],
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textBody,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // 日時
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, size: 20, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      meeting['datetime'],
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textBody,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // ※ 場所情報はここでは表示しない ※
+                
+                const SizedBox(height: 20),
+                const Divider(height: 1, color: AppColors.overcast),
+                const SizedBox(height: 16),
+                
+                // メンバーと再作成リンク
+                Row(
+                  children: [
+                    // メンバーアイコン
+                    for (var member in (meeting['members'] as List).take(3))
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Column(
+                          children: [
+                            const CircleAvatar(
+                              radius: 16,
+                              backgroundColor: AppColors.secondary,
+                              child: Icon(Icons.person, size: 20, color: Colors.white),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              member,
+                              style: const TextStyle(fontSize: 10, color: AppColors.textSub),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if ((meeting['members'] as List).length > 3)
+                      const Text('...', style: TextStyle(color: AppColors.textSub)),
+                    
+                    const Spacer(),
+                    
+                    // 再作成への誘導
+                    Row(
+                      children: const [
+                        Text(
+                          '再作成', 
+                          style: TextStyle(
+                            fontSize: 12, 
+                            color: AppColors.primary, 
+                            fontWeight: FontWeight.bold
+                          )
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.primary),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 数値アイテム（フォロワー数など）
   Widget _buildStatItem(BuildContext context, {required String count, required String label, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
@@ -209,12 +368,20 @@ class HomeScreen extends StatelessWidget {
           children: [
             Text(
               count,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textBody),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textBody,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSub, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSub,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
