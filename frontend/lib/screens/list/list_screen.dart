@@ -17,7 +17,7 @@ class ListScreen extends StatefulWidget {
 }
 
 class _ListScreenState extends State<ListScreen> {
-  // ダミーデータ
+  // ダミーデータ (locationはデータとして保持しますが、リストには表示しません)
   final List<Map<String, dynamic>> _meetings = [
     {
       'id': '1',
@@ -106,7 +106,7 @@ class _ListScreenState extends State<ListScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textBody, // 黒文字に変更
+                      color: AppColors.textBody,
                     ),
                   ),
                 ],
@@ -131,7 +131,7 @@ class _ListScreenState extends State<ListScreen> {
     );
   }
 
-  // カードデザインのビルド
+  // カードデザインのビルド (場所表示を削除し、ホーム画面とデザインを統一)
   Widget _buildMeetingCard(Map<String, dynamic> meeting) {
     return Container(
       decoration: BoxDecoration(
@@ -150,6 +150,7 @@ class _ListScreenState extends State<ListScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: () {
+            // 詳細マップ画面へ遷移
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -188,24 +189,14 @@ class _ListScreenState extends State<ListScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                
+                // ※ 場所情報の表示行は削除しました ※
 
-                // 場所
-                Row(
-                  children: [
-                    const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textSub),
-                    const SizedBox(width: 8),
-                    Text(
-                      meeting['location'],
-                      style: const TextStyle(fontSize: 15, color: AppColors.textBody),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 20),
                 const Divider(height: 1, color: AppColors.overcast),
                 const SizedBox(height: 16),
 
-                // 下段：メンバーのみ表示 (ピンアイコン削除)
+                // 下段：メンバー表示
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

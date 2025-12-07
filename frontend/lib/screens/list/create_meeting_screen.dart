@@ -22,7 +22,7 @@ class CreateMeetingScreen extends StatefulWidget {
 class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   // 入力コントローラー
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController(); // 場所入力用
+  // 場所名入力（_locationController）は削除しました
   
   DateTime _selectedDateTime = DateTime.now();
   
@@ -39,7 +39,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   @override
   void initState() {
     super.initState();
-    // 初期データの反映 (履歴からの再作成時)
+    // 初期データの反映
     if (widget.initialData != null) {
       final data = widget.initialData!;
       
@@ -48,10 +48,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         _titleController.text = data['title'];
       }
       
-      // 場所
-      if (data['location'] != null) {
-        _locationController.text = data['location'];
-      }
+      // 場所名の反映処理は削除（マップ上のピン位置などに反映するのが理想ですが、今回はUI削除のみ）
       
       // メンバー（フォロワー）の反映
       if (data['members'] != null && data['members'] is List) {
@@ -59,7 +56,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
         if (members.isNotEmpty) {
           _inviteFollowers = true;
           for (var memberName in members) {
-            // 名前からIDを逆引きして選択状態にするダミー処理
             for (var user in _dummyFollowers) {
               if (user['name'] == memberName.toString()) {
                 _selectedFollowerIds.add(user['id']!);
@@ -74,7 +70,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   @override
   void dispose() {
     _titleController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -88,12 +83,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       return;
     }
     
-    if (_locationController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('場所を入力してください')),
-      );
-      return;
-    }
+    // 場所名のバリデーションは削除しました
 
     if (!_inviteFollowers && !_inviteGuest) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,7 +107,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     Navigator.pop(context, {
       'created': true,
       'title': _titleController.text,
-      'location': _locationController.text,
+      // location (場所名) は返さない（あるいはマップから取得した座標を返す）
       'inviteGuest': _inviteGuest,
       'inviteFollowers': _inviteFollowers,
       'meetingLink': _inviteGuest ? 'https://machiawase.app/meet/12345' : null,
@@ -388,36 +378,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
-
-              // --- 場所名入力 ---
-              const Text(
-                '場所名',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSub),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  hintText: '例: 大学カフェテリア、駅前',
-                  hintStyle: const TextStyle(color: AppColors.warmGray),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
+              // --- 場所名入力欄は削除しました ---
 
               const SizedBox(height: 24),
 
