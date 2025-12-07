@@ -3,8 +3,9 @@ import '../../constants/app_colors.dart';
 import 'create_meeting_screen.dart'; // 作成画面への遷移用
 
 class MapScreen extends StatelessWidget {
-  const MapScreen({super.key});
-
+  // isGuestを受け取るように変更
+  final bool isGuest;
+  const MapScreen({super.key, required this.isGuest});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,7 +30,7 @@ class MapScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const CreateMeetingScreen(),
+              builder: (context) => CreateMeetingScreen(isGuest: isGuest),
             ),
           );
         },

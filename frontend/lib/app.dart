@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'constants/app_colors.dart';
 import 'screens/home/home_screen.dart';
-import 'screens/map/map_screen.dart'; // マップ画面をインポート
+import 'screens/map/map_screen.dart';
+import 'screens/message/message_list_screen.dart';
+import 'screens/settings/settings_screen.dart';
 
 class MachiawaseApp extends StatelessWidget {
-  const MachiawaseApp({super.key});
+  // ゲストモードかどうかを親から受け取る
+  final bool isGuest;
+
+  const MachiawaseApp({super.key, required this.isGuest});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +18,6 @@ class MachiawaseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        // カラーパレット設定
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
           primary: AppColors.primary,
@@ -57,35 +61,36 @@ class MachiawaseApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const RootScaffold(),
+      // ゲスト状態を RootScaffold に渡す
+      home: RootScaffold(isGuest: isGuest),
     );
   }
 }
 
 class RootScaffold extends StatefulWidget {
-  const RootScaffold({super.key});
+  final bool isGuest;
+  const RootScaffold({super.key, required this.isGuest});
 
   @override
   State<RootScaffold> createState() => _RootScaffoldState();
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
-  int _currentIndex = 0;
+  // ゲストユーザーはマップ機能がメインのため、初期表示をMap(インデックス1)にする
+  int _currentIndex = 1;
 
   @override
   Widget build(BuildContext context) {
-    // 画面のリスト
+    // 各画面に isGuest フラグを渡す
     final List<Widget> screens = [
-      const HomeScreen(), // 作成済み
-      const MapScreen(),  // ここを本物のMapScreenに修正しました
-      const Scaffold(body: Center(child: Text('Message Screen (Page 8)'))), // まだ仮置き
-      const Scaffold(body: Center(child: Text('Setting Screen (Page 10)'))), // まだ仮置き
+      HomeScreen(isGuest: widget.isGuest),           // 1. Home (制限あり)
+      MapScreen(isGuest: widget.isGuest),            // 2. Map (制限なし、作成ボタンのみ制限)
+      MessageListScreen(isGuest: widget.isGuest),    // 3. Message (制限あり)
+      const SettingsScreen(),                        // 4. Setting (今回は制限なし)
     ];
 
     return Scaffold(
-      // 現在のインデックスに応じた画面を表示
       body: screens[_currentIndex],
-      
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
