@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart'; // iOSスタイルのピッカー用
+import 'package:flutter/services.dart';
 import '../../constants/app_colors.dart';
-import '../../widgets/auth_guard.dart'; // AuthGuardをインポート
+import '../../widgets/auth_guard.dart';
 
 class CreateMeetingScreen extends StatefulWidget {
   final bool isGuest;
@@ -16,10 +17,10 @@ class CreateMeetingScreen extends StatefulWidget {
 }
 
 class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
-  // 入力状態の管理
-  bool _useCurrentLocation = false;
+  // タイトル入力
+  final TextEditingController _titleController = TextEditingController();
   
-  // 日付と時刻を両方扱うために DateTime に変更
+  // 日時 (初期値は現在時刻)
   DateTime _selectedDateTime = DateTime.now();
   
   // 招待設定
@@ -31,12 +32,24 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     15,
     (index) => {'id': 'user_$index', 'name': 'Friend User $index'},
   );
-  // 選択されたフォロワーのIDセット
   final Set<String> _selectedFollowerIds = {};
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
 
   // 作成ボタン処理
   void _createMeeting() {
     // バリデーション
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('タイトルを入力してください')),
+      );
+      return;
+    }
+
     if (!_inviteFollowers && !_inviteGuest) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('待ち合わせ相手を選択してください')),
@@ -44,7 +57,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       return;
     }
 
-    // フォロワー招待がONなのに誰も選択していない場合
     if (_inviteFollowers && _selectedFollowerIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('フォロワーを選択してください')),
@@ -52,32 +64,67 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       return;
     }
 
-    // 作成完了メッセージ
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('待ち合わせを作成しました！')),
     );
 
-    // マップ画面へ結果を返して閉じる（共有機能はマップ画面側で制御）
     Navigator.pop(context, {
       'created': true,
+      'title': _titleController.text,
       'inviteGuest': _inviteGuest,
       'inviteFollowers': _inviteFollowers,
       'meetingLink': _inviteGuest ? 'https://machiawase.app/meet/12345' : null,
     });
   }
 
-  // ドラムロール式のピッカーを表示するメソッド
-  void _showCupertinoDatePicker(BuildContext context) {
+  // --- 日付選択 (カレンダー) ---
+  Future<void> _pickDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime,
+      firstDate: DateTime.now(), // 過去の日付は選択不可
+      lastDate: DateTime(2100),
+      // 日本語ロケール設定（アプリ全体の設定が必要ですが、ここではシステムのデフォルトに従います）
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textBody,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null) {
+      setState(() {
+        // 日付だけ更新し、時間は維持する
+        _selectedDateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _selectedDateTime.hour,
+          _selectedDateTime.minute,
+        );
+      });
+    }
+  }
+
+  // --- 時刻選択 (ドラムロール) ---
+  void _pickTime(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       builder: (BuildContext builder) {
         return Container(
-          height: 300, // ピッカーの高さ
+          height: 300,
           color: Colors.white,
           child: Column(
             children: [
-              // 完了ボタンエリア
+              // 完了ボタン
               Container(
                 color: Colors.grey[100],
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -98,17 +145,22 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                   ],
                 ),
               ),
-              // ピッカー本体
+              // 時刻ピッカー本体
               Expanded(
                 child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.dateAndTime, // 日付と時刻
+                  mode: CupertinoDatePickerMode.time, // 時刻のみ
                   initialDateTime: _selectedDateTime,
                   use24hFormat: true,
-                  // 過去の日時を選べないようにする（1分前まで許容）
-                  minimumDate: DateTime.now().subtract(const Duration(minutes: 1)),
                   onDateTimeChanged: (DateTime newDateTime) {
                     setState(() {
-                      _selectedDateTime = newDateTime;
+                      // 時間だけ更新し、日付は維持する
+                      _selectedDateTime = DateTime(
+                        _selectedDateTime.year,
+                        _selectedDateTime.month,
+                        _selectedDateTime.day,
+                        newDateTime.hour,
+                        newDateTime.minute,
+                      );
                     });
                   },
                 ),
@@ -120,28 +172,30 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
     );
   }
 
-  // 日時を文字列に整形するヘルパー
-  String _formatDateTime(DateTime dt) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final date = '${dt.year}/${dt.month}/${dt.day}';
-    final time = '${twoDigits(dt.hour)}:${twoDigits(dt.minute)}';
+  // 日付フォーマットヘルパー (例: 2025年12月4日(木))
+  String _formatDate(DateTime dt) {
     const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
     final weekday = weekdays[dt.weekday - 1];
-    
-    return '$date ($weekday) $time';
+    return '${dt.year}年${dt.month}月${dt.day}日($weekday)';
   }
 
-  // フォロワー選択シートを表示
+  // 時刻フォーマットヘルパー (例: 12:00)
+  String _formatTime(DateTime dt) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    return '${twoDigits(dt.hour)}:${twoDigits(dt.minute)}';
+  }
+
+  // フォロワー選択シート
   void _showFollowerSelector() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // 画面の高さに合わせて表示
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return StatefulBuilder( // シート内で状態更新するために必要
+        return StatefulBuilder(
           builder: (context, setSheetState) {
             return Container(
-              height: MediaQuery.of(context).size.height * 0.7, // 画面の7割の高さ
+              height: MediaQuery.of(context).size.height * 0.7,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.only(
@@ -151,7 +205,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
               ),
               child: Column(
                 children: [
-                  // ハンドルバー
                   Container(
                     width: 40,
                     height: 4,
@@ -166,10 +219,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'フォロワーを選択',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
+                        const Text('フォロワーを選択', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: const Text('完了', style: TextStyle(color: AppColors.primary)),
@@ -178,7 +228,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                     ),
                   ),
                   const Divider(height: 1),
-                  // リスト
                   Expanded(
                     child: ListView.builder(
                       itemCount: _dummyFollowers.length,
@@ -197,14 +246,13 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                           ),
                           title: Text(name),
                           onChanged: (val) {
-                            setSheetState(() { // シート内の再描画
+                            setSheetState(() {
                               if (val == true) {
                                 _selectedFollowerIds.add(id);
                               } else {
                                 _selectedFollowerIds.remove(id);
                               }
                             });
-                            // 親画面（作成画面）の表示も更新する
                             this.setState(() {}); 
                           },
                         );
@@ -242,7 +290,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // --- 1. 場所選択 ---
+              // --- 1. 場所選択エリア (地図ダミー) ---
               const Text(
                 '場所を選択',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSub),
@@ -267,72 +315,113 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                 ),
               ),
               
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.primary,
-                title: const Text('現在地で待ち合わせ', style: TextStyle(fontSize: 14, color: AppColors.textBody)),
-                value: _useCurrentLocation,
-                onChanged: (val) => setState(() => _useCurrentLocation = val ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-
               const SizedBox(height: 24),
 
-              // --- 2. 開始日時設定 (ドラムロール式に変更) ---
+              // --- 2. タイトル入力 ---
               const Text(
-                '開始日時',
+                'タイトル',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSub),
               ),
               const SizedBox(height: 8),
-              InkWell(
-                onTap: () => _showCupertinoDatePicker(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  hintText: '例: ランチ、ハッカソン打ち合わせ',
+                  hintStyle: const TextStyle(color: AppColors.warmGray),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.warmGray.withOpacity(0.5)),
+                    borderSide: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_today, color: AppColors.primary),
-                          const SizedBox(width: 16),
-                          Text(
-                            _formatDateTime(_selectedDateTime),
-                            style: const TextStyle(
-                              fontSize: 18, 
-                              fontWeight: FontWeight.bold, 
-                              color: AppColors.textBody
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          '変更',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary
-                          ),
-                        ),
-                      ),
-                    ],
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
                   ),
                 ),
               ),
 
               const SizedBox(height: 24),
 
-              // --- 3. 相手を選択 (複数選択可能) ---
+              // --- 3. 開始日時設定 (カレンダー + 時刻) ---
+              const Text(
+                '開始日時',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSub),
+              ),
+              const SizedBox(height: 8),
+              
+              // 日時選択行
+              Row(
+                children: [
+                  // 日付選択ボタン
+                  Expanded(
+                    flex: 3,
+                    child: InkWell(
+                      onTap: () => _pickDate(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.warmGray.withOpacity(0.5)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatDate(_selectedDateTime),
+                              style: const TextStyle(
+                                fontSize: 16, 
+                                fontWeight: FontWeight.bold, 
+                                color: AppColors.textBody
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 12),
+                  
+                  // 時刻選択ボタン
+                  Expanded(
+                    flex: 2,
+                    child: InkWell(
+                      onTap: () => _pickTime(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.warmGray.withOpacity(0.5)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _formatTime(_selectedDateTime),
+                            style: const TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold, 
+                              color: AppColors.textBody
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // --- 4. 相手を選択 ---
               const Text(
                 '待ち合わせ相手 (複数選択可)',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSub),
@@ -346,7 +435,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                 ),
                 child: Column(
                   children: [
-                    // フォロワーと待ち合わせ
                     CheckboxListTile(
                       title: const Text('フォロワーと待ち合わせ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       subtitle: const Text('アプリ内で通知を送ります', style: TextStyle(fontSize: 12, color: AppColors.textSub)),
@@ -356,7 +444,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                       onChanged: (val) => setState(() => _inviteFollowers = val ?? false),
                     ),
                     
-                    // フォロワー選択がONの場合のみ表示される詳細設定エリア
                     if (_inviteFollowers)
                       Container(
                         width: double.infinity,
@@ -391,7 +478,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
 
                     const Divider(height: 1),
                     
-                    // ゲストと待ち合わせ
                     CheckboxListTile(
                       title: const Text('ゲストと待ち合わせ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       subtitle: const Text('共有リンクを作成します', style: TextStyle(fontSize: 12, color: AppColors.textSub)),
@@ -406,7 +492,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
 
               const SizedBox(height: 32),
 
-              // --- 4. 作成ボタン ---
+              // --- 5. 作成ボタン ---
               ElevatedButton(
                 onPressed: _createMeeting,
                 style: ElevatedButton.styleFrom(
