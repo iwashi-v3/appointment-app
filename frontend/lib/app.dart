@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/home/home_screen.dart';
 import 'constants/app_colors.dart';
-// 作成したHomeScreenをインポート
+import 'screens/home/home_screen.dart';
+import 'screens/list/list_screen.dart'; // MapScreenの代わりにListScreenをインポート
+import 'screens/message/message_list_screen.dart';
+import 'screens/settings/settings_screen.dart';
 
 class MachiawaseApp extends StatelessWidget {
-  const MachiawaseApp({super.key});
+  final bool isGuest;
+
+  const MachiawaseApp({super.key, required this.isGuest});
 
   @override
   Widget build(BuildContext context) {
@@ -15,20 +19,14 @@ class MachiawaseApp extends StatelessWidget {
       // アプリ全体のテーマ設定
       theme: ThemeData(
         useMaterial3: true,
-        
-        // カラーパレットの適用
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
-          primary: AppColors.primary,       // Glacier Blue
-          secondary: AppColors.secondary,   // Ice
-          surface: AppColors.background,    // Overcast
-          background: AppColors.background, // Overcast
+          primary: AppColors.primary,
+          secondary: AppColors.secondary,
+          surface: AppColors.background,
+          background: AppColors.background,
         ),
-        
-        // 背景色の設定
         scaffoldBackgroundColor: AppColors.background,
-        
-        // AppBar（ヘッダー）のテーマ
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.background,
           foregroundColor: AppColors.textBody,
@@ -36,8 +34,6 @@ class MachiawaseApp extends StatelessWidget {
           centerTitle: true,
           iconTheme: IconThemeData(color: AppColors.textBody),
         ),
-        
-        // 下部ナビゲーションバーのテーマ
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           indicatorColor: AppColors.ice.withOpacity(0.5),
@@ -51,14 +47,10 @@ class MachiawaseApp extends StatelessWidget {
             return const IconThemeData(color: AppColors.warmGray);
           }),
         ),
-        
-        // フローティングアクションボタンのテーマ
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
         ),
-        
-        // ボタンのテーマ
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
@@ -70,46 +62,36 @@ class MachiawaseApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const RootScaffold(),
+      
+      // ゲスト状態をルート画面に渡す
+      home: RootScaffold(isGuest: isGuest),
     );
   }
 }
 
 class RootScaffold extends StatefulWidget {
-  const RootScaffold({super.key});
+  final bool isGuest;
+  const RootScaffold({super.key, required this.isGuest});
 
   @override
   State<RootScaffold> createState() => _RootScaffoldState();
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
-  int _currentIndex = 0;
+  // 初期表示をList(インデックス1)にする
+  int _currentIndex = 1;
 
   @override
   Widget build(BuildContext context) {
     // 画面のリスト
     final List<Widget> screens = [
-      // 1. Home: 作成済みの本物のファイルを使用
-      const HomeScreen(),
-      
-      // 2. Map: 仮置き
-      const Scaffold(
-        body: Center(child: Text('Map Screen (Page 4)')),
-      ),
-      
-      // 3. Message: 仮置き
-      const Scaffold(
-        body: Center(child: Text('Message Screen (Page 8)')),
-      ),
-      
-      // 4. Setting: 仮置き
-      const Scaffold(
-        body: Center(child: Text('Setting Screen (Page 10)')),
-      ),
+      HomeScreen(isGuest: widget.isGuest),           // 1. Home
+      ListScreen(isGuest: widget.isGuest),           // 2. List (Mapから変更)
+      MessageListScreen(isGuest: widget.isGuest),    // 3. Message
+      const SettingsScreen(),                        // 4. Setting
     ];
 
     return Scaffold(
-      // 現在選択されているインデックスの画面を表示
       body: screens[_currentIndex],
       
       // 下部のナビゲーションバー
@@ -126,10 +108,11 @@ class _RootScaffoldState extends State<RootScaffold> {
             selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
+          // 2番目のタブをMapからListに変更
           NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Map',
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'List',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),
