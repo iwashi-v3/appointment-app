@@ -6,5 +6,5 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
   // アプリを起動
-  runApp(const MachiawaseApp());
+  runApp(const MachiawaseApp(isGuest: true));
 }

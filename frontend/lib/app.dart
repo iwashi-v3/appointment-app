@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
-import 'constants/app_colors.dart'; // 定義した色をインポート
+import 'constants/app_colors.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/list/list_screen.dart'; // MapScreenの代わりにListScreenをインポート
+import 'screens/message/message_list_screen.dart';
+import 'screens/settings/settings_screen.dart';
 
 class MachiawaseApp extends StatelessWidget {
-  const MachiawaseApp({super.key});
+  final bool isGuest;
+
+  const MachiawaseApp({super.key, required this.isGuest});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Machiawase App',
       debugShowCheckedModeBanner: false,
+      
+      // アプリ全体のテーマ設定
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -24,6 +32,7 @@ class MachiawaseApp extends StatelessWidget {
           foregroundColor: AppColors.textBody,
           elevation: 0,
           centerTitle: true,
+          iconTheme: IconThemeData(color: AppColors.textBody),
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
@@ -38,59 +47,54 @@ class MachiawaseApp extends StatelessWidget {
             return const IconThemeData(color: AppColors.warmGray);
           }),
         ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            elevation: 2,
+            elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
           ),
         ),
       ),
-      home: const RootScaffold(),
+      
+      // ゲスト状態をルート画面に渡す
+      home: RootScaffold(isGuest: isGuest),
     );
   }
 }
 
 class RootScaffold extends StatefulWidget {
-  const RootScaffold({super.key});
+  final bool isGuest;
+  const RootScaffold({super.key, required this.isGuest});
 
   @override
   State<RootScaffold> createState() => _RootScaffoldState();
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
-  int _currentIndex = 0;
-
-  // まだファイルを作成していないため、標準的なWidgetで仮置きしています。
-  // 後ほど lib/screens/ 以下のファイルを作成したら、それらをimportして置き換えてください。
-  final List<Widget> _screens = [
-    // 1. Home画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Home Screen (Page 3)')),
-    ),
-    // 2. Map画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Map Screen (Page 4)')),
-    ),
-    // 3. Message画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Message Screen (Page 8)')),
-    ),
-    // 4. Setting画面の仮置き
-    const Scaffold(
-      body: Center(child: Text('Setting Screen (Page 10)')),
-    ),
-  ];
+  // 初期表示をList(インデックス1)にする
+  int _currentIndex = 1;
 
   @override
   Widget build(BuildContext context) {
+    // 画面のリスト
+    final List<Widget> screens = [
+      HomeScreen(isGuest: widget.isGuest),           // 1. Home
+      ListScreen(isGuest: widget.isGuest),           // 2. List (Mapから変更)
+      MessageListScreen(isGuest: widget.isGuest),    // 3. Message
+      const SettingsScreen(),                        // 4. Setting
+    ];
+
     return Scaffold(
-      // 現在のインデックスに応じた画面を表示
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
       
+      // 下部のナビゲーションバー
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (int index) {
@@ -104,10 +108,11 @@ class _RootScaffoldState extends State<RootScaffold> {
             selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
+          // 2番目のタブをMapからListに変更
           NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Map',
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'List',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),
