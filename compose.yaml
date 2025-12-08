@@ -1,0 +1,134 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: flutter-frontend
+    ports:
+      - "61805:61805"
+    volumes:
+      - ./frontend/:/frontend/
+      - ./.env.local:/frontend/.env.local
+      - ./.env.prod:/frontend/.env.prod
+      - ./.env.keys:/frontend/.env.keys
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    container_name: node-backend
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/package.json:/app/package.json
+      - ./backend/tsconfig.json:/app/tsconfig.json
+      - ./.env.local:/backend/.env.local
+      - ./.env.prod:/backend/.env.prod
+      - ./.env.keys:/backend/.env.keys
+    depends_on:
+      - db
+
+  db:
+    image: supabase/postgres:15.6.1.146
+    container_name: supabase-db
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: postgres
+    volumes:
+      - ./volumes/db/data:/var/lib/postgresql/data:Z
+      - ./database/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+      - ./database/init-auth.sql:/docker-entrypoint-initdb.d/01-init-auth.sql:ro
+    restart: unless-stopped
+
+
+  meta:
+    image: supabase/postgres-meta:v0.84.2
+    container_name: supabase-meta
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  rest:
+    image: postgrest/postgrest:v12.2.0
+    container_name: supabase-rest
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PGRST_DB_URI: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "3000:3000"
+    command: ["postgrest"]
+    restart: unless-stopped
+
+  auth:
+    image: supabase/gotrue:v2.164.0
+    container_name: supabase-auth
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "9999:9999"
+    restart: unless-stopped
+
+  studio:
+    image: supabase/studio:20241202-71e5240
+    container_name: supabase-studio
+    depends_on:
+      db:
+        condition: service_healthy
+      meta:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      STUDIO_PG_META_URL: http://meta:8080
+      SUPABASE_URL: http://localhost:3000
+      SUPABASE_PUBLIC_URL: http://localhost:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8081:3000"
+    restart: unless-stopped
+
+volumes:
+  db-config:
