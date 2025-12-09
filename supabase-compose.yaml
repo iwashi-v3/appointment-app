@@ -1,35 +1,7 @@
+name: supabase
+
 services:
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    container_name: flutter-frontend
-    ports:
-      - "61805:61805"
-    volumes:
-      - ./frontend/:/frontend/
-      - ./.env.local:/frontend/.env.local
-      - ./.env.prod:/frontend/.env.prod
-      - ./.env.keys:/frontend/.env.keys
-    depends_on:
-      - backend
-
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      target: dev
-    container_name: node-backend
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./backend/src:/app/src
-      - ./backend/package.json:/app/package.json
-      - ./backend/tsconfig.json:/app/tsconfig.json
-      - ./.env.local:/backend/.env.local
-      - ./.env.prod:/backend/.env.prod
-      - ./.env.keys:/backend/.env.keys
-
+  # Supabase PostgreSQL Database
   db:
     container_name: supabase-db
     image: supabase/postgres:15.8.1.085
@@ -147,7 +119,7 @@ services:
     volumes:
       - ./supabase/volumes/storage:/var/lib/storage:z
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/status"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status"]
       timeout: 5s
       interval: 5s
       retries: 3
@@ -183,7 +155,7 @@ services:
       rest:
         condition: service_started
       storage:
-        condition: service_started
+        condition: service_healthy
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
