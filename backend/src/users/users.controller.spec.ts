@@ -6,7 +6,6 @@ import { CurrentUserData } from '../common/decorators/current-user.decorator';
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let usersService: UsersService;
 
   const mockUser = {
     userId: 'test-user-id',
@@ -36,7 +35,6 @@ describe('UsersController', () => {
     }).compile();
 
     controller = module.get<UsersController>(UsersController);
-    usersService = module.get<UsersService>(UsersService);
   });
 
   afterEach(() => {
@@ -53,7 +51,9 @@ describe('UsersController', () => {
       expect(result).toHaveProperty('userId', mockUser.userId);
       expect(result).toHaveProperty('username', mockUser.username);
       expect(result).toHaveProperty('email', mockUser.email);
-      expect(mockUsersService.findById).toHaveBeenCalledWith(currentUser.userId);
+      expect(mockUsersService.findById).toHaveBeenCalledWith(
+        currentUser.userId,
+      );
     });
   });
 

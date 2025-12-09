@@ -3,6 +3,17 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
+interface AuthResponse {
+  accessToken: string;
+  user: {
+    userId: string;
+    username: string;
+    email: string;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+  };
+}
+
 describe('Users (e2e)', () => {
   let app: INestApplication;
   let accessToken: string;
@@ -35,8 +46,9 @@ describe('Users (e2e)', () => {
         password: 'password123',
       });
 
-    accessToken = signupResponse.body.accessToken;
-    userId = signupResponse.body.user.userId;
+    const body = signupResponse.body as AuthResponse;
+    accessToken = body.accessToken;
+    userId = body.user.userId;
   });
 
   afterAll(async () => {

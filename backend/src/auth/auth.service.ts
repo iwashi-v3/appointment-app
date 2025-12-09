@@ -64,7 +64,7 @@ export class AuthService {
     };
   }
 
-  async signOut() {
+  signOut() {
     // JWTはステートレスなので、クライアント側でトークンを破棄する
     return { message: 'Signed out successfully' };
   }

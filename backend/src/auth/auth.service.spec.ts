@@ -1,15 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { HashService } from '../common/services/hash.service';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: UsersService;
-  let jwtService: JwtService;
-  let hashService: HashService;
 
   const mockUser = {
     userId: 'test-user-id',
@@ -46,9 +43,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    usersService = module.get<UsersService>(UsersService);
-    jwtService = module.get<JwtService>(JwtService);
-    hashService = module.get<HashService>(HashService);
   });
 
   afterEach(() => {
@@ -95,7 +89,9 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('accessToken', 'jwt-token');
       expect(result).toHaveProperty('user');
       expect(result.user).not.toHaveProperty('password');
-      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(signInDto.email);
+      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(
+        signInDto.email,
+      );
       expect(mockHashService.comparePassword).toHaveBeenCalledWith(
         signInDto.password,
         mockUser.password,
@@ -131,8 +127,8 @@ describe('AuthService', () => {
   });
 
   describe('signOut', () => {
-    it('サインアウト成功メッセージを返す', async () => {
-      const result = await service.signOut();
+    it('サインアウト成功メッセージを返す', () => {
+      const result = service.signOut();
 
       expect(result).toHaveProperty('message', 'Signed out successfully');
     });

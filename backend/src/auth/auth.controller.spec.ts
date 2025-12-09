@@ -6,7 +6,6 @@ import { SignInDto } from '../users/dto/signin.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: AuthService;
 
   const mockAuthService = {
     signUp: jest.fn(),
@@ -21,7 +20,6 @@ describe('AuthController', () => {
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
   });
 
   afterEach(() => {
@@ -84,12 +82,12 @@ describe('AuthController', () => {
   });
 
   describe('signOut', () => {
-    it('サインアウトが成功する', async () => {
+    it('サインアウトが成功する', () => {
       const expectedResult = { message: 'Signed out successfully' };
 
-      mockAuthService.signOut.mockResolvedValue(expectedResult);
+      mockAuthService.signOut.mockReturnValue(expectedResult);
 
-      const result = await controller.signOut();
+      const result = controller.signOut();
 
       expect(result).toEqual(expectedResult);
       expect(mockAuthService.signOut).toHaveBeenCalled();

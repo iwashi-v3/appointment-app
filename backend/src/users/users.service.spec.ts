@@ -1,16 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { DatabaseService } from '../database/database.service';
 import { HashService } from '../common/services/hash.service';
 
 describe('UsersService', () => {
   let service: UsersService;
-  let databaseService: DatabaseService;
-  let hashService: HashService;
 
   const mockUser = {
     userId: 'test-user-id',
@@ -51,8 +46,6 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    databaseService = module.get<DatabaseService>(DatabaseService);
-    hashService = module.get<HashService>(HashService);
   });
 
   afterEach(() => {
@@ -190,10 +183,10 @@ describe('UsersService', () => {
 
   describe('deleteUser', () => {
     it('ユーザーを論理削除する', async () => {
-      // ユーザー存在確認
+      // ユーザー存在確認（findById内で呼ばれる）
       mockDatabaseService.db.limit.mockResolvedValueOnce([mockUser]);
-      // 削除実行
-      mockDatabaseService.db.where.mockResolvedValueOnce(undefined);
+      // 削除実行（update処理）
+      mockDatabaseService.db.returning.mockResolvedValueOnce([mockUser]);
 
       const result = await service.deleteUser('test-user-id');
 

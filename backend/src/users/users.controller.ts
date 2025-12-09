@@ -27,6 +27,7 @@ export class UsersController {
     const userData = await this.usersService.findById(user.userId);
 
     // パスワードを除外して返す
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = userData;
     return userWithoutPassword;
   }
@@ -43,6 +44,7 @@ export class UsersController {
     );
 
     // パスワードを除外して返す
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = updatedUser;
     return userWithoutPassword;
   }

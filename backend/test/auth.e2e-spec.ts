@@ -3,6 +3,17 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
+interface AuthResponse {
+  accessToken: string;
+  user: {
+    userId: string;
+    username: string;
+    email: string;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+  };
+}
+
 describe('Auth (e2e)', () => {
   let app: INestApplication;
 
@@ -42,12 +53,13 @@ describe('Auth (e2e)', () => {
         .send(signupDto)
         .expect(201)
         .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('user');
-          expect(res.body.user).toHaveProperty('userId');
-          expect(res.body.user).toHaveProperty('username', signupDto.username);
-          expect(res.body.user).toHaveProperty('email', signupDto.email);
-          expect(res.body.user).not.toHaveProperty('password');
+          const body = res.body as AuthResponse;
+          expect(body).toHaveProperty('accessToken');
+          expect(body).toHaveProperty('user');
+          expect(body.user).toHaveProperty('userId');
+          expect(body.user).toHaveProperty('username', signupDto.username);
+          expect(body.user).toHaveProperty('email', signupDto.email);
+          expect(body.user).not.toHaveProperty('password');
         });
     });
 
@@ -110,10 +122,11 @@ describe('Auth (e2e)', () => {
         .send(signinDto)
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('user');
-          expect(res.body.user).toHaveProperty('email', signinDto.email);
-          expect(res.body.user).not.toHaveProperty('password');
+          const body = res.body as AuthResponse;
+          expect(body).toHaveProperty('accessToken');
+          expect(body).toHaveProperty('user');
+          expect(body.user).toHaveProperty('email', signinDto.email);
+          expect(body.user).not.toHaveProperty('password');
         });
     });
 
@@ -155,7 +168,8 @@ describe('Auth (e2e)', () => {
           password: 'password123',
         });
 
-      accessToken = signupResponse.body.accessToken;
+      const body = signupResponse.body as AuthResponse;
+      accessToken = body.accessToken;
     });
 
     it('認証済みユーザーがログアウトできる', () => {

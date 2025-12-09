@@ -30,7 +30,7 @@ export class AuthController {
   @Post('signout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async signOut() {
+  signOut() {
     return this.authService.signOut();
   }
 }
