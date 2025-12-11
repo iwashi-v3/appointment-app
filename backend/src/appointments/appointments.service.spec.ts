@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { DatabaseService } from '../database/database.service';
 
@@ -239,6 +239,116 @@ describe('AppointmentsService', () => {
       await expect(service.regenerateInviteUrl(999, 'user-1')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('findByInviteToken', () => {
+    it('招待トークンで予約を取得できる', async () => {
+      mockQueryBuilder.limit.mockResolvedValueOnce([mockAppointment]);
+
+      const result = await service.findByInviteToken('test-token-123');
+
+      expect(mockQueryBuilder.select).toHaveBeenCalled();
+      expect(result.appointmentId).toBe(1);
+    });
+
+    it('キャンセルされた予約は取得できない', async () => {
+      mockQueryBuilder.limit.mockResolvedValueOnce([
+        { ...mockAppointment, status: 'cancelled' },
+      ]);
+
+      await expect(
+        service.findByInviteToken('test-token-123'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('無効なトークンの場合エラーになる', async () => {
+      mockQueryBuilder.limit.mockResolvedValueOnce([]);
+
+      await expect(
+        service.findByInviteToken('invalid-token'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('joinAppointment', () => {
+    const joinDto = {
+      username: 'ゲストユーザー',
+      userLatitude: 35.6812,
+      userLongitude: 139.7671,
+      sessionId: 'session-123',
+    };
+
+    it('ゲストユーザーが予約に参加できる', async () => {
+      mockQueryBuilder.limit.mockResolvedValueOnce([mockAppointment]); // findByInviteToken
+      mockQueryBuilder.limit.mockResolvedValueOnce([]); // 既存参加者チェック
+      mockQueryBuilder.returning.mockResolvedValueOnce([
+        {
+          id: 1,
+          appointmentId: 1,
+          sessionId: 'session-123',
+          username: 'ゲストユーザー',
+          isGuest: 'true',
+          userLatitude: '35.6812',
+          userLongitude: '139.7671',
+          joinedAt: new Date(),
+        },
+      ]);
+
+      const result = await service.joinAppointment(
+        'test-token-123',
+        joinDto,
+        undefined,
+      );
+
+      expect(mockQueryBuilder.insert).toHaveBeenCalled();
+      expect(result.message).toBe('Successfully joined the appointment');
+      expect(result.participant.isGuest).toBe('true');
+    });
+
+    it('登録ユーザーが予約に参加できる', async () => {
+      mockQueryBuilder.limit.mockResolvedValueOnce([mockAppointment]); // findByInviteToken
+      mockQueryBuilder.limit.mockResolvedValueOnce([]); // 既存参加者チェック
+      mockQueryBuilder.returning.mockResolvedValueOnce([
+        {
+          id: 1,
+          appointmentId: 1,
+          userId: 'user-2',
+          username: '登録ユーザー',
+          isGuest: 'false',
+          userLatitude: '35.6812',
+          userLongitude: '139.7671',
+          joinedAt: new Date(),
+        },
+      ]);
+
+      const result = await service.joinAppointment(
+        'test-token-123',
+        joinDto,
+        'user-2',
+      );
+
+      expect(result.participant.isGuest).toBe('false');
+      expect(result.participant.userId).toBe('user-2');
+    });
+
+    it('すでに参加している場合はエラーになる', async () => {
+      mockQueryBuilder.limit.mockResolvedValueOnce([mockAppointment]); // findByInviteToken
+      mockQueryBuilder.limit.mockResolvedValueOnce([
+        { id: 1, sessionId: 'session-123' },
+      ]); // 既存参加者あり
+
+      await expect(
+        service.joinAppointment('test-token-123', joinDto, undefined),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('無効なトークンでは参加できない', async () => {
+      mockQueryBuilder.limit.mockResolvedValueOnce([]); // findByInviteToken
+
+      await expect(
+        service.joinAppointment('invalid-token', joinDto, undefined),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

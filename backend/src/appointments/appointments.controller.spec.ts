@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
+import { ParticipantsService } from '../participants/participants.service';
 import { CurrentUserData } from '../auth/strategies/jwt.strategy';
 
 describe('AppointmentsController', () => {
@@ -14,6 +15,12 @@ describe('AppointmentsController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     regenerateInviteUrl: jest.fn(),
+  };
+
+  const mockParticipantsService = {
+    findByAppointment: jest.fn(),
+    updateLocation: jest.fn(),
+    remove: jest.fn(),
   };
 
   const currentUser: CurrentUserData = {
@@ -42,6 +49,10 @@ describe('AppointmentsController', () => {
         {
           provide: AppointmentsService,
           useValue: mockAppointmentsService,
+        },
+        {
+          provide: ParticipantsService,
+          useValue: mockParticipantsService,
         },
       ],
     }).compile();
