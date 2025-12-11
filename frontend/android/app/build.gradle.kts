@@ -3,6 +3,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -37,6 +38,15 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+    secrets {
+    propertiesFileName = "secrets.properties"
+
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    ignoreList.add("keyToIgnore") // Ignore the key "keyToIgnore"
+    ignoreList.add("sdk.*")       // Ignore all keys matching the regexp "sdk.*"
 }
 
 flutter {

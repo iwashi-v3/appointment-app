@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_dotenv: ^6.0.0
+  google_maps_flutter: ^2.14.0
+  google_maps_flutter_web: ^0.5.14+3
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:
