@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../database/database.service';
 import { appointments } from '../database/schema/appointments.schema';
+import { participants } from '../database/schema/participants.schema';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { JoinAppointmentDto } from './dto/join-appointment.dto';
 
 @Injectable()
 export class AppointmentsService {
@@ -168,6 +170,77 @@ export class AppointmentsService {
       .returning();
 
     return this.buildAppointmentResponse(result[0]);
+  }
+
+  /**
+   * 招待トークンで予約を取得
+   */
+  async findByInviteToken(inviteToken: string) {
+    const result = await this.databaseService.db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.inviteToken, inviteToken))
+      .limit(1);
+
+    if (!result[0]) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    if (result[0].status === 'cancelled') {
+      throw new NotFoundException('This appointment has been cancelled');
+    }
+
+    return result[0];
+  }
+
+  /**
+   * イベントに参加（ゲストまたは登録ユーザー）
+   */
+  async joinAppointment(
+    inviteToken: string,
+    joinDto: JoinAppointmentDto,
+    userId?: string,
+  ) {
+    // 予約の存在確認
+    const appointment = await this.findByInviteToken(inviteToken);
+
+    // すでに参加しているかチェック
+    const existingParticipant = await this.databaseService.db
+      .select()
+      .from(participants)
+      .where(
+        and(
+          eq(participants.appointmentId, appointment.appointmentId),
+          userId
+            ? eq(participants.userId, userId)
+            : eq(participants.sessionId, joinDto.sessionId || ''),
+        ),
+      )
+      .limit(1);
+
+    if (existingParticipant.length > 0) {
+      throw new ConflictException('Already joined this appointment');
+    }
+
+    // 参加者を追加
+    const result = await this.databaseService.db
+      .insert(participants)
+      .values({
+        appointmentId: appointment.appointmentId,
+        userId: userId || null,
+        sessionId: joinDto.sessionId || null,
+        username: joinDto.username,
+        isGuest: userId ? 'false' : 'true',
+        userLatitude: joinDto.userLatitude.toString(),
+        userLongitude: joinDto.userLongitude.toString(),
+      })
+      .returning();
+
+    return {
+      message: 'Successfully joined the appointment',
+      participant: result[0],
+      appointment: this.buildAppointmentResponse(appointment),
+    };
   }
 
   /**
