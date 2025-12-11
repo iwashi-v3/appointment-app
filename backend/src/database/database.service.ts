@@ -2,7 +2,11 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from './schema/users.schema';
+import * as usersSchema from './schema/users.schema';
+import * as eventsSchema from './schema/events.schema';
+import * as messagesSchema from './schema/messages.schema';
+
+const schema = { ...usersSchema, ...eventsSchema, ...messagesSchema };
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
