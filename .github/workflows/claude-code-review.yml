@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
       id-token: write
 
     steps:
@@ -37,21 +37,78 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
+            PR #${{ github.event.pull_request.number }} のコードレビューを実施してください。
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            ## PRの情報
+            - PR番号: ${{ github.event.pull_request.number }}
+            - タイトル: ${{ github.event.pull_request.title }}
+            - ブランチ: ${{ github.event.pull_request.head.ref }}
+            
+            ## 必須タスク1 - リポジトリのコードベースを理解する
+            - リポジトリの主要な言語、フレームワーク、ライブラリを把握してください。
+            - コーディング規約やスタイルガイドラインがあれば、それに従ってください。
+            - リポジトリのCLAUDE.mdファイルがあれば、スタイルや規約のガイダンスとして参照してください。
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            ## 必須タスク2 - PRの変更点を把握する
+            以下のコマンドを使用して、PRの差分を取得し、変更点を把握してください。
+            ```bash
+            gh pr diff ${{ github.event.pull_request.number }}
+            ```
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            ## 必須タスク3 - レビュー実施
+            - コード品質とベストプラクティス
+            - 潜在的なバグや問題
+            - パフォーマンスの考慮事項
+            - セキュリティ上の懸念
+            - テストカバレッジ
+            - スコアリング(1-100点)
+            - Approve/Request Changesの推奨
+
+            ## 必須タスク4 - レビューコメントの作成
+            - 上記のレビューに基づいて、以下のフォーマットを元に具体的で建設的なフィードバックを提供してください。
+            - 可能であれば、コード例や修正案を含めてください。
+            
+            ```
+            ## 📋 Claude Code 自動レビュー結果
+            ### 全体的なフィードバック
+            - PR: #${{ github.event.pull_request.number }}
+            - スコア: XX点 / 100点
+            - 判定: ✅ Approve / 📝 要確認
+
+            ## 🔍重要な指摘
+            1. [Must / Question / Suggestion / Nits] - 指摘内容
+               - 詳細説明
+               - 修正案やコード例（可能であれば）
+            2. [Must / Question / Suggestion / Nits] - 指摘内容
+               - 詳細説明
+               - 修正案やコード例（可能であれば）
+            3. [Must / Question / Suggestion / Nits] - 指摘内容
+               - 詳細説明
+               - 修正案やコード例（可能であれば）
+            
+            ## 📊 観点別評価
+            (各視点ごとに評価とコメントを記載)
+            ```
+
+            ## 必須タスク5 - コメントの投稿と承認推奨 (必須)
+            ※注意: 必ず `Bash` ツールを使用して実際にコマンドを実行してください。
+            ※重要: PR番号 ${{ github.event.pull_request.number }} を必ず指定してください。
+            ※必須: どちらの条件でも、必ず以下のコマンドのいずれかを実行してください。
+
+            **【パターン1】Approveする場合**
+            ```bash
+            gh pr review ${{ github.event.pull_request.number }} --approve --body "(必須タスク3で作成したコメント内容)"
+            ```
+
+            **【パターン2】Request Changesする場合**
+            ```bash
+            gh pr comment ${{ github.event.pull_request.number }} --request-changes --body "(必須タスク3で作成したコメント内容)"
+            ```
+
+            ⚠️ **絶対に守ること**: パターンAまたはパターンBのどちらかのコマンドを必ず実行してください。コマンドを実行しないことは許可されていません。
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: |
+            '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
 
