@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // Google Maps
+import 'dart:async';
 import '../../constants/app_colors.dart';
 
-class MeetingDetailMapScreen extends StatelessWidget {
+class MeetingDetailMapScreen extends StatefulWidget {
   final Map<String, dynamic> meetingData;
 
   const MeetingDetailMapScreen({
@@ -10,12 +12,65 @@ class MeetingDetailMapScreen extends StatelessWidget {
   });
 
   @override
+  State<MeetingDetailMapScreen> createState() => _MeetingDetailMapScreenState();
+}
+
+class _MeetingDetailMapScreenState extends State<MeetingDetailMapScreen> {
+  final Completer<GoogleMapController> _controller = Completer();
+  
+  // マーカーリスト
+  Set<Marker> _markers = {};
+  
+  // 初期表示位置（例として東京駅周辺）
+  // 実際は meetingData['location'] に紐づく座標を使うべきですが、今回はダミー座標を使用
+  final LatLng _initialPosition = const LatLng(35.681236, 139.767125);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMarkers();
+  }
+
+  // マーカーを作成（集合場所 + メンバーの現在地）
+  void _loadMarkers() {
+    // 1. 集合場所のマーカー
+    final destinationMarker = Marker(
+      markerId: const MarkerId('destination'),
+      position: _initialPosition,
+      infoWindow: InfoWindow(title: '集合場所: ${widget.meetingData['title']}'),
+      icon: BitmapDescriptor.defaultMarker, // 赤いピン
+    );
+
+    // 2. メンバーの現在地マーカー（ダミー）
+    // 実際はFirestoreなどでリアルタイムな位置情報を取得して更新します
+    final List<Map<String, dynamic>> dummyMembers = [
+      {'id': '1', 'name': '自分', 'lat': 35.681236, 'lng': 139.767125, 'hue': BitmapDescriptor.hueBlue},
+      {'id': '2', 'name': '佐藤さん', 'lat': 35.682000, 'lng': 139.768000, 'hue': BitmapDescriptor.hueViolet},
+      {'id': '3', 'name': '鈴木さん', 'lat': 35.680000, 'lng': 139.766000, 'hue': BitmapDescriptor.hueGreen},
+    ];
+
+    final memberMarkers = dummyMembers.map((m) {
+      return Marker(
+        markerId: MarkerId(m['id']),
+        position: LatLng(m['lat'], m['lng']),
+        infoWindow: InfoWindow(title: m['name'], snippet: '現在地'),
+        // 色を変えてメンバーを区別
+        icon: BitmapDescriptor.defaultMarkerWithHue(m['hue']),
+      );
+    }).toSet();
+
+    setState(() {
+      _markers = {destinationMarker, ...memberMarkers};
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: true, // AppBarを地図の上に重ねる
       appBar: AppBar(
-        title: Text(meetingData['title']),
-        backgroundColor: Colors.white.withOpacity(0.8),
+        title: Text(widget.meetingData['title']),
+        backgroundColor: Colors.white.withOpacity(0.8), // 半透明
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppColors.textBody),
@@ -25,53 +80,23 @@ class MeetingDetailMapScreen extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+      
       body: Stack(
         children: [
-          // --- マップエリア (全画面) ---
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: AppColors.ice.withOpacity(0.3),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // グリッド線（ダミーマップ）
-                GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                  ),
-                  itemBuilder: (context, index) {
-                    return Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white.withOpacity(0.5)),
-                      ),
-                    );
-                  },
-                ),
-                // 目的地ピン
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.location_on, size: 48, color: Colors.redAccent),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black12, blurRadius: 4),
-                        ],
-                      ),
-                      child: Text(
-                        meetingData['location'],
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          // --- Google Map ---
+          GoogleMap(
+            mapType: MapType.normal,
+            initialCameraPosition: CameraPosition(
+              target: _initialPosition,
+              zoom: 16,
             ),
+            markers: _markers,
+            myLocationEnabled: true, // 自分の位置を表示（権限が必要）
+            myLocationButtonEnabled: false, // デフォルトの現在地ボタンは隠す
+            zoomControlsEnabled: false, // ズームボタンを隠す
+            onMapCreated: (GoogleMapController controller) {
+              _controller.complete(controller);
+            },
           ),
 
           // --- 下部操作パネル ---
@@ -82,12 +107,35 @@ class MeetingDetailMapScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 待ち合わせ開始ボタン
+                // メンバー状況表示バー
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.people, size: 18, color: AppColors.primary),
+                      SizedBox(width: 8),
+                      Text(
+                        '3人が移動中...', // ダミーテキスト
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // 開始ボタン
                 ElevatedButton.icon(
                   onPressed: () {
-                    // 開始処理（位置情報共有の開始など）
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('待ち合わせを開始しました。位置情報を共有します。')),
+                      const SnackBar(content: Text('位置情報の共有を開始しました')),
                     );
                   },
                   icon: const Icon(Icons.play_arrow_rounded),
@@ -105,17 +153,16 @@ class MeetingDetailMapScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 
-                // 待ち合わせ終了ボタン
+                // 終了ボタン
                 OutlinedButton.icon(
                   onPressed: () {
-                    // 終了処理
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('待ち合わせを終了しました')),
+                      const SnackBar(content: Text('終了しました')),
                     );
                   },
                   icon: const Icon(Icons.stop_rounded),
-                  label: const Text('待ち合わせを終了'),
+                  label: const Text('終了する'),
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.red,
