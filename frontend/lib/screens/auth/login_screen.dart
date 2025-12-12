@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../../constants/app_colors.dart';
 import '../../state/auth_state.dart';
-import 'signup_screen.dart'; // 新規登録画面
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,29 +14,54 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _passwordController = TextEditingController(); // パスワード復活
   bool _isLoading = false;
 
-  void _login() async {
-    // バリデーション（簡易）
+  Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('EmailとPasswordを入力してください')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('EmailとPasswordを入力してください')),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // 擬似的なログイン処理（実際はFirebase Authなどを使用）
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final supabase = Supabase.instance.client;
+      
+      // パスワードでログイン
+      await supabase.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      if (!mounted) return;
 
-    // ログイン成功 -> グローバル状態を更新して前画面に戻る
-    context.read<AuthState>().login();
-    Navigator.of(context).pop();
+      context.read<AuthState>().login();
+      Navigator.of(context).pop();
+
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ログイン失敗: ${e.message}'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('予期せぬエラーが発生しました'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -49,7 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ロゴやアプリアイコン部分
               Icon(Icons.location_on, size: 80, color: AppColors.primary),
               const SizedBox(height: 16),
               const Text(
@@ -64,95 +89,59 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 48),
 
-              // Email入力
+              // Email
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: const Icon(
-                    Icons.email_outlined,
-                    color: AppColors.primary,
-                  ),
+                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Password入力
+              // Password
               TextField(
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: const Icon(
-                    Icons.lock_outline,
-                    color: AppColors.primary,
-                  ),
+                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
               const SizedBox(height: 24),
 
-              // ログインボタン
+              // Login Button
               ElevatedButton(
                 onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'ログイン',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
+                    : const Text('ログイン', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
-
               const SizedBox(height: 24),
-
-              // 新規登録へ遷移
               TextButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SignupScreen(),
-                    ),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SignupScreen()));
                 },
-                child: const Text(
-                  'アカウントをお持ちでない方はこちら\n(Sign Up)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSub),
-                ),
+                child: const Text('アカウントをお持ちでない方はこちら\n(Sign Up)', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSub)),
               ),
             ],
           ),

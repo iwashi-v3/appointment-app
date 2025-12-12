@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/app_colors.dart';
-import '../../app.dart'; // 登録成功時の遷移先
+import 'otp_verify_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -13,11 +14,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final _userIdController = TextEditingController();
   final _userNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _passwordController = TextEditingController(); // パスワードあり
   bool _isLoading = false;
 
-  void _signup() async {
-    // 簡易バリデーション
+  Future<void> _signup() async {
     if (_userIdController.text.isEmpty ||
         _userNameController.text.isEmpty ||
         _emailController.text.isEmpty ||
@@ -30,18 +30,46 @@ class _SignupScreenState extends State<SignupScreen> {
 
     setState(() => _isLoading = true);
 
-    // 擬似的な登録処理
-    // ここでUser IDの重複チェックAPIなどを呼ぶ想定
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final supabase = Supabase.instance.client;
+      
+      // パスワード付きでサインアップ
+      await supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        data: {
+          'username': _userIdController.text.trim(),
+          'full_name': _userNameController.text.trim(),
+        },
+      );
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      if (!mounted) return;
 
-    // 登録成功 -> 全スタックをクリアしてホーム画面へ
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const MachiawaseApp(isGuest: false)),
-      (route) => false,
-    );
+      // 成功したらOTP入力画面へ遷移
+      // (パスワード登録の場合、自動ログインしない設定であれば確認待ち状態になります)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          // 前画面からのEmailを渡す
+          builder: (context) => OtpVerifyScreen(email: _emailController.text.trim()),
+        ),
+      );
+
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('登録エラー: ${e.message}'), backgroundColor: Colors.redAccent),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('予期せぬエラーが発生しました'), backgroundColor: Colors.redAccent),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -59,114 +87,52 @@ class _SignupScreenState extends State<SignupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                '新規登録',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
+              const Text('新規登録', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary)),
+              const SizedBox(height: 32),
+              
+              // 各入力フィールド
+              _buildTextField(_userIdController, 'User ID', Icons.alternate_email, helperText: '※重複しないID'),
+              const SizedBox(height: 16),
+              _buildTextField(_userNameController, 'User Name', Icons.person_outline),
+              const SizedBox(height: 16),
+              _buildTextField(_emailController, 'Email', Icons.email_outlined, inputType: TextInputType.emailAddress),
+              const SizedBox(height: 16),
+              _buildTextField(_passwordController, 'Password', Icons.lock_outline, isObscure: true), // パスワード欄
               const SizedBox(height: 32),
 
-              // User ID入力 (重複不可の注釈付き)
-              TextField(
-                controller: _userIdController,
-                decoration: InputDecoration(
-                  labelText: 'User ID',
-                  helperText: '※他のユーザーと重複しないID',
-                  prefixIcon: const Icon(Icons.alternate_email, color: AppColors.primary),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // User Name入力
-              TextField(
-                controller: _userNameController,
-                decoration: InputDecoration(
-                  labelText: 'User Name',
-                  prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Email入力
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Password入力
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // 登録ボタン
               ElevatedButton(
                 onPressed: _isLoading ? null : _signup,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        '登録してはじめる',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
+                    : const Text('登録して認証コードを受け取る', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // UI共通化メソッド
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isObscure = false, TextInputType? inputType, String? helperText}) {
+    return TextField(
+      controller: controller,
+      obscureText: isObscure,
+      keyboardType: inputType,
+      decoration: InputDecoration(
+        labelText: label,
+        helperText: helperText,
+        prefixIcon: Icon(icon, color: AppColors.primary),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
       ),
     );
   }
