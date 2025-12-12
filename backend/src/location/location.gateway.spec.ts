@@ -24,15 +24,18 @@ describe('LocationGateway', () => {
   };
 
   const mockSessionService = {
-    createSession: jest.fn(),
+    createGuestSession: jest.fn(),
     getSession: jest.fn(),
     deleteSession: jest.fn(),
     cleanupExpiredSessions: jest.fn(),
+    getActiveSessionCount: jest.fn(),
   };
 
   const mockRateLimitService = {
-    checkLimit: jest.fn(),
-    resetLimit: jest.fn(),
+    checkLimit: jest.fn().mockResolvedValue(true),
+    getRemainingRequests: jest.fn().mockResolvedValue(60),
+    reset: jest.fn().mockResolvedValue(undefined),
+    cleanup: jest.fn().mockReturnValue(0),
   };
 
   const mockSocket = {
