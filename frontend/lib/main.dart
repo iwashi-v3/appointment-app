@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState; // 追加: Supabaseパッケージ
 import 'app.dart';
 import 'state/auth_state.dart';
 
@@ -15,6 +16,24 @@ void main() async {
   } catch (e) {
     print('環境変数ファイルの読み込みに失敗しました: $e');
   }
+
+final supabaseUrl = dotenv.env['SUPABASE_URL'];
+final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+
+if (supabaseUrl == null || supabaseAnonKey == null || supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+  throw Exception('Supabase環境変数が設定されていません。.envファイルを確認してください。');
+}
+
+await Supabase.initialize(
+  url: supabaseUrl,
+  anonKey: supabaseAnonKey,
+);
+
+final session = Supabase.instance.client.auth.currentSession;
+final authState = AuthState();
+if (session != null) {
+  authState.login();
+}
 
   final apiKey = dotenv.env['MAP_API_KEY'] ?? '';
   if (apiKey.isEmpty) {

@@ -1,12 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // 追加
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState; // 追加
 import '../../constants/app_colors.dart';
-import 'edit_profile_screen.dart';        // プロフィール編集画面
-import 'notification_settings_screen.dart'; // 通知設定画面
-import 'blocked_users_screen.dart';       // ブロックユーザー管理画面
-import 'text_content_screen.dart';        // テキスト表示画面（規約等）
+import '../../state/auth_state.dart'; // パスを確認してください
+import '../auth/login_screen.dart'; // パスを確認してください
+import 'edit_profile_screen.dart';
+import 'notification_settings_screen.dart';
+import 'blocked_users_screen.dart';
+import 'text_content_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  // --- ログアウト処理 ---
+  Future<void> _logout(BuildContext context) async {
+    try {
+      // 1. Supabaseからサインアウト
+      await Supabase.instance.client.auth.signOut();
+
+      if (!context.mounted) return;
+
+      // 2. アプリ内の状態をゲスト（未ログイン）更新
+      // （AuthState内で notifyListeners() されるので、main.dartの監視で画面が変わる可能性がありますが、
+      //   念のため明示的に画面遷移も行います）
+      context.read<AuthState>().logout();
+
+      // 3. ログイン画面へ戻る（戻るボタンで戻れないように全履歴削除）
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ログアウトに失敗しました')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +157,7 @@ class SettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // --- その他（危険な操作など）セクション ---
+          // --- その他セクション ---
           _buildSectionHeader('その他'),
           _buildSettingTile(
             context,
@@ -137,22 +167,16 @@ class SettingsScreen extends StatelessWidget {
             iconColor: AppColors.primary,
             onTap: () => _showLogoutDialog(context),
           ),
-          _buildSettingTile(
-            context,
-            icon: Icons.delete_forever,
-            title: 'アカウント削除',
-            textColor: Colors.red,
-            iconColor: Colors.red,
-            onTap: () => _showDeleteAccountDialog(context),
-          ),
-
+          
+          // アカウント削除ボタンは一時的に非表示または削除しています
+          
           const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  // セクションのタイトルウィジェット
+  // セクションのタイトル
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -167,7 +191,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // 設定項目のタイルウィジェット
+  // 設定項目のタイル
   Widget _buildSettingTile(
     BuildContext context, {
     required IconData icon,
@@ -213,35 +237,11 @@ class SettingsScreen extends StatelessWidget {
             child: const Text('キャンセル', style: TextStyle(color: AppColors.textSub)),
           ),
           TextButton(
-            onPressed: () {
-              // ログアウト処理をここに記述
-              Navigator.pop(context);
+            onPressed: () async {
+              Navigator.pop(context); // ダイアログを閉じる
+              await _logout(context); // ログアウト処理を実行
             },
             child: const Text('ログアウト', style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // アカウント削除確認ダイアログ
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('アカウント削除'),
-        content: const Text('アカウントを削除すると、全てのデータが消去され復元できません。本当によろしいですか？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.textSub)),
-          ),
-          TextButton(
-            onPressed: () {
-              // 削除処理をここに記述
-              Navigator.pop(context);
-            },
-            child: const Text('削除する', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
