@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
-import '../../app.dart'; // ログイン成功時の遷移先 (MachiawaseApp)
+import '../../state/auth_state.dart';
 import 'signup_screen.dart'; // 新規登録画面
 
 class LoginScreen extends StatefulWidget {
@@ -18,9 +19,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void _login() async {
     // バリデーション（簡易）
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('EmailとPasswordを入力してください')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('EmailとPasswordを入力してください')));
       return;
     }
 
@@ -32,11 +33,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // ログイン成功 -> ホーム画面（RootScaffold）へ遷移
-    // 戻れないように pushReplacement を使用
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MachiawaseApp(isGuest: false)),
-    );
+    // ログイン成功 -> グローバル状態を更新して前画面に戻る
+    context.read<AuthState>().login();
+    Navigator.of(context).pop();
   }
 
   @override
@@ -71,7 +70,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
+                  prefixIcon: const Icon(
+                    Icons.email_outlined,
+                    color: AppColors.primary,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -89,7 +91,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: AppColors.primary,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -117,11 +122,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text(
                         'ログイン',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
 
@@ -132,7 +143,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SignupScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const SignupScreen(),
+                    ),
                   );
                 },
                 child: const Text(
