@@ -4,6 +4,8 @@ import { UsersService } from '../users/users.service';
 import { HashService } from '../common/services/hash.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { SignInDto } from '../users/dto/signin.dto';
+import { CreateGuestSessionDto } from './dto/create-guest-session.dto';
+import { SessionService } from './services/session.service';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +13,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly hashService: HashService,
+    private readonly sessionService: SessionService,
   ) {}
 
   async signUp(createUserDto: CreateUserDto) {
@@ -67,5 +70,16 @@ export class AuthService {
   signOut() {
     // JWTはステートレスなので、クライアント側でトークンを破棄する
     return { message: 'Signed out successfully' };
+  }
+
+  async createGuestSession(createGuestSessionDto: CreateGuestSessionDto) {
+    const { username } = createGuestSessionDto;
+    const session = await this.sessionService.createGuestSession(username);
+
+    return {
+      sessionId: session.sessionId,
+      username: session.username,
+      expiresAt: session.expiresAt,
+    };
   }
 }

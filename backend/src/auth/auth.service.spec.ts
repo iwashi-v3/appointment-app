@@ -4,6 +4,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { HashService } from '../common/services/hash.service';
+import { SessionService } from './services/session.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -32,6 +33,13 @@ describe('AuthService', () => {
     comparePassword: jest.fn(),
   };
 
+  const mockSessionService = {
+    createSession: jest.fn(),
+    getSession: jest.fn(),
+    deleteSession: jest.fn(),
+    cleanupExpiredSessions: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -39,6 +47,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: mockUsersService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: HashService, useValue: mockHashService },
+        { provide: SessionService, useValue: mockSessionService },
       ],
     }).compile();
 
