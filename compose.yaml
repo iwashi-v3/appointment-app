@@ -1,0 +1,28 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: flutter-frontend
+    ports:
+      - "61805:61805"
+    volumes:
+      - ./frontend/:/frontend/
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    container_name: node-backend
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/package.json:/app/package.json
+      - ./backend/tsconfig.json:/app/tsconfig.json
+      - ./.env.local:/backend/.env.local
+      - ./.env.prod:/backend/.env.prod
+      - ./.env.keys:/backend/.env.keys
