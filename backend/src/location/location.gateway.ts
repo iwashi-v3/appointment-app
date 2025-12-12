@@ -18,7 +18,8 @@ import { UpdateLocationDto } from './dto/update-location.dto';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
+    credentials: true,
   },
   namespace: 'location',
 })

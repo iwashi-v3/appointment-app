@@ -1,83 +1,84 @@
-import { Injectable } from '@nestjs/common';
-
-interface RateLimitRecord {
-  count: number;
-  resetAt: Date;
-}
+import { Injectable, Logger } from '@nestjs/common';
+import { RedisService } from '../../redis/redis.service';
 
 @Injectable()
 export class RateLimitService {
-  private records = new Map<string, RateLimitRecord>();
-  private readonly WINDOW_MS = 60 * 1000; // 1分
+  private readonly logger = new Logger(RateLimitService.name);
+  private readonly WINDOW_SECONDS = 60; // 1分
   private readonly MAX_REQUESTS = 60; // 1分あたり60リクエスト
+  private readonly KEY_PREFIX = 'ratelimit:';
+
+  constructor(private readonly redisService: RedisService) {}
 
   /**
-   * レート制限をチェック
+   * レート制限をチェック（Redisベース）
    * @param key 識別キー（IPアドレスやユーザーIDなど）
    * @returns 制限内であればtrue、超過していればfalse
    */
-  checkLimit(key: string): boolean {
-    const now = new Date();
-    const record = this.records.get(key);
+  async checkLimit(key: string): Promise<boolean> {
+    const redisKey = `${this.KEY_PREFIX}${key}`;
 
-    // レコードが存在しない、または期限切れの場合は新規作成
-    if (!record || now > record.resetAt) {
-      this.records.set(key, {
-        count: 1,
-        resetAt: new Date(now.getTime() + this.WINDOW_MS),
-      });
+    try {
+      const current = await this.redisService.incr(redisKey);
+
+      // 初回アクセスの場合、TTLを設定
+      if (current === 1) {
+        await this.redisService.expire(redisKey, this.WINDOW_SECONDS);
+      }
+
+      // 制限を超えているかチェック
+      if (current > this.MAX_REQUESTS) {
+        this.logger.warn(`Rate limit exceeded for key: ${key}`);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      this.logger.error('Rate limit check failed:', error);
+      // Redisエラー時はアクセスを許可（フェイルオープン）
       return true;
     }
-
-    // カウントを増やす
-    record.count++;
-
-    // 制限を超えているかチェック
-    if (record.count > this.MAX_REQUESTS) {
-      return false;
-    }
-
-    return true;
   }
 
   /**
    * 特定のキーの残りリクエスト数を取得
    */
-  getRemainingRequests(key: string): number {
-    const record = this.records.get(key);
-    if (!record) {
-      return this.MAX_REQUESTS;
-    }
+  async getRemainingRequests(key: string): Promise<number> {
+    const redisKey = `${this.KEY_PREFIX}${key}`;
 
-    const now = new Date();
-    if (now > record.resetAt) {
-      return this.MAX_REQUESTS;
-    }
-
-    return Math.max(0, this.MAX_REQUESTS - record.count);
-  }
-
-  /**
-   * 期限切れレコードをクリーンアップ
-   */
-  cleanup(): number {
-    const now = new Date();
-    let deletedCount = 0;
-
-    for (const [key, record] of this.records.entries()) {
-      if (now > record.resetAt) {
-        this.records.delete(key);
-        deletedCount++;
+    try {
+      const value = await this.redisService.get(redisKey);
+      if (!value) {
+        return this.MAX_REQUESTS;
       }
-    }
 
-    return deletedCount;
+      const current = parseInt(value, 10);
+      return Math.max(0, this.MAX_REQUESTS - current);
+    } catch (error) {
+      this.logger.error('Failed to get remaining requests:', error);
+      return this.MAX_REQUESTS;
+    }
   }
 
   /**
    * 特定のキーのレート制限をリセット
    */
-  reset(key: string): void {
-    this.records.delete(key);
+  async reset(key: string): Promise<void> {
+    const redisKey = `${this.KEY_PREFIX}${key}`;
+
+    try {
+      await this.redisService.del(redisKey);
+    } catch (error) {
+      this.logger.error('Failed to reset rate limit:', error);
+    }
+  }
+
+  /**
+   * 期限切れレコードのクリーンアップ（Redisが自動で行うため不要）
+   * @deprecated Redis TTLが自動的にクリーンアップを行います
+   */
+  cleanup(): number {
+    // Redisが自動的にTTLで削除するため、このメソッドは何もしない
+    return 0;
   }
 }

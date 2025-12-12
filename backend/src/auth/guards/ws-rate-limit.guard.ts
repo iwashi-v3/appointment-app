@@ -7,11 +7,11 @@ import { RateLimitService } from '../../common/services/rate-limit.service';
 export class WsRateLimitGuard implements CanActivate {
   constructor(private readonly rateLimitService: RateLimitService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const client: Socket = context.switchToWs().getClient();
     const key = this.getIdentifier(client);
 
-    const isAllowed = this.rateLimitService.checkLimit(key);
+    const isAllowed = await this.rateLimitService.checkLimit(key);
 
     if (!isAllowed) {
       throw new WsException('レート制限を超過しました。しばらくしてから再試行してください。');
