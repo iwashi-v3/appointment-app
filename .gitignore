@@ -263,3 +263,4 @@ CLAUDE.md
 
 # Drizzle ORM
 backend/drizzle/
+volumes/
