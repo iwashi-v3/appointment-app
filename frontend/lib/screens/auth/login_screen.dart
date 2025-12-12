@@ -42,21 +42,23 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pop();
 
     } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ログイン失敗: ${e.message}'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('予期せぬエラーが発生しました'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+  if (!mounted) return;
+  
+  String errorMessage;
+  switch (e.message) {
+    case 'Invalid login credentials':
+      errorMessage = 'メールアドレスまたはパスワードが正しくありません';
+      break;
+    case 'Email not confirmed':
+      errorMessage = 'メールアドレスが確認されていません';
+      break;
+    default:
+      errorMessage = 'ログインに失敗しました: ${e.message}';
+  }
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(errorMessage), backgroundColor: Colors.redAccent),
+  );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -150,3 +152,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
