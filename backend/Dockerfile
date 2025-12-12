@@ -7,7 +7,7 @@ COPY ./backend /backend
 WORKDIR /backend
 
 FROM base AS dev
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --no-frozen-lockfile
 CMD [ "pnpm", "run", "start:dev" ]
 
 FROM base AS prod-deps
