@@ -42,7 +42,7 @@ export class WsAuthGuard implements CanActivate {
 
     // セッションID認証を試行（ゲストユーザー）
     if (sessionId) {
-      const session = this.sessionService.getSession(sessionId);
+      const session = await this.sessionService.getSession(sessionId);
       if (session) {
         const user: AuthenticatedUser = {
           sessionId: session.sessionId,

@@ -3,11 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../database/database.service';
-import { appointments } from '../database/schema/appointments.schema';
+import { appointments, Appointment } from '../database/schema/appointments.schema';
 import { participants } from '../database/schema/participants.schema';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { JoinAppointmentDto } from './dto/join-appointment.dto';
+
+interface AppointmentResponse extends Omit<Appointment, 'latitude' | 'longitude'> {
+  latitude: string;
+  longitude: string;
+  inviteUrl: string;
+}
 
 @Injectable()
 export class AppointmentsService {
@@ -96,7 +102,7 @@ export class AppointmentsService {
     // 存在確認と所有者チェック
     await this.findOne(id, userId);
 
-    const updateData: any = {
+    const updateData: Partial<typeof appointments.$inferInsert> & { updatedAt: Date } = {
       ...updateAppointmentDto,
       updatedAt: new Date(),
     };
@@ -246,7 +252,7 @@ export class AppointmentsService {
   /**
    * レスポンスオブジェクトを構築（招待URLを含む）
    */
-  private buildAppointmentResponse(appointment: any) {
+  private buildAppointmentResponse(appointment: Appointment): AppointmentResponse {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
 

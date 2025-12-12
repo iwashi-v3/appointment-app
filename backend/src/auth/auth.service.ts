@@ -72,9 +72,9 @@ export class AuthService {
     return { message: 'Signed out successfully' };
   }
 
-  createGuestSession(createGuestSessionDto: CreateGuestSessionDto) {
+  async createGuestSession(createGuestSessionDto: CreateGuestSessionDto) {
     const { username } = createGuestSessionDto;
-    const session = this.sessionService.createGuestSession(username);
+    const session = await this.sessionService.createGuestSession(username);
 
     return {
       sessionId: session.sessionId,
